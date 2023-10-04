@@ -17,7 +17,8 @@ public class Main {
 	public static final int TARGET_WIDTH = 256;
 	public static final int TARGET_HEIGHT = 256;
 	
-	public static final double MAX_DIFFERENCE = 90d;
+	public static final double MAX_PIXEL_DIFFERENCE = 0.9d;
+	public static final double MAX_IMAGE_DIFFERENCE = 0.9d;
 	
 	public static void main(String[] args) {
 		File dir = new File(args[0]);
@@ -59,9 +60,16 @@ public class Main {
 				BufferedImage img1 = images.get(f1);
 				BufferedImage img2 = images.get(f2);
 				
+//				System.out.println(f1.getName());
+//				System.out.println(f2.getName());
+				
 				double diff = compareImages(img1, img2);
 				
-				System.out.printf("%s - %s: %f%n", f1.getName(), f2.getName(), diff);
+				if(diff > MAX_IMAGE_DIFFERENCE) {
+					System.out.print(">> ");
+				}
+				
+				System.out.printf("%s - %s: %.2f%%%n", f1.getName(), f2.getName(), diff * 100);
 				
 			}
 		}
@@ -83,7 +91,7 @@ public class Main {
 	 *
 	 * @param imgA the first image.
 	 * @param imgB the second image.
-	 * @return the pixel difference
+	 * @return The pixel difference. Higher means images are <b>more</b> similar.
 	 */
 	public static double compareImages(BufferedImage imgA, BufferedImage imgB) {
 	  // The images must be the same size.
@@ -101,9 +109,23 @@ public class Main {
 	  for (int y = 0; y < height; y++) {
 	    for (int x = 0; x < width; x++) {
 	      // Compare the pixels for equality.
-	      if (imgA.getRGB(x, y) == imgB.getRGB(x, y)) {
-	        counter++;
+	      int pixel1 = imgA.getRGB(x, y);
+	      int pixel2 = imgB.getRGB(x, y);
+	      
+	      int pxDelta = pixelDelta(pixel1, pixel2);
+	      double pxDiff = pxDelta / (255.0 * 3);
+	      
+//	      System.out.println(new Pixel(pixel1));
+//	      System.out.println(new Pixel(pixel2));
+//	      System.out.println(pxDelta);
+//	      System.out.println(pxDiff);
+	      
+	      // pxDiff: higher is worse
+	      if(pxDiff < (1 - MAX_PIXEL_DIFFERENCE)) {
+	    	  counter++;
 	      }
+	      
+//	      throw new IllegalStateException();
 	    }
 	  }
 	  
@@ -113,5 +135,54 @@ public class Main {
 //	  System.out.println((double) counter / size);
 
 	  return ((double) counter) / size;
+	}
+	
+	static class Pixel {
+		public final int alpha;
+		public final int red;
+		public final int green;
+		public final int blue;
+		
+		public Pixel(int value) {
+			this.alpha = mask(value, ColourMasks.ALPHA);
+			this.red = mask(value, ColourMasks.RED);
+			this.green = mask(value, ColourMasks.GREEN);
+			this.blue = mask(value, ColourMasks.BLUE);
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("{%d | %d | %d} @ %d", red, green, blue, alpha);
+		}
+	}
+	
+	enum ColourMasks {
+		ALPHA(0xFF000000, 24),
+		RED(0xFF0000, 16),
+		GREEN(0xFF00, 8),
+		BLUE(0xFF, 0);
+		
+		public final int mask;
+		public final int shift;
+		
+		private ColourMasks(int mask, int shift) {
+			this.mask = mask;
+			this.shift = shift;
+		}
+	}
+	
+	public static int pixelDelta(int px1, int px2) {
+		int diff = 0;
+		
+		diff += Math.abs(mask(px1, ColourMasks.ALPHA) - mask(px2, ColourMasks.ALPHA));
+		diff += Math.abs(mask(px1, ColourMasks.RED) - mask(px2, ColourMasks.RED));
+		diff += Math.abs(mask(px1, ColourMasks.GREEN) - mask(px2, ColourMasks.GREEN));
+		diff += Math.abs(mask(px1, ColourMasks.BLUE) - mask(px2, ColourMasks.BLUE));
+		
+		return diff;
+	}
+	
+	public static int mask(int value, ColourMasks mask) {
+		return ((value & mask.mask) >> mask.shift) & 0xFF;
 	}
 }
