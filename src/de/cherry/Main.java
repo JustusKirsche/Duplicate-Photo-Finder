@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -20,13 +21,17 @@ public class Main {
 	public static final double MAX_PIXEL_DIFFERENCE = 0.9d;
 	public static final double MAX_IMAGE_DIFFERENCE = 0.9d;
 	
+	static Set<String> allowedExtensions = Set.of(".png", ".jpeg", ".jpg");
+	
 	public static void main(String[] args) {
 		File dir = new File(args[0]);
 		
 		System.out.printf("loading from %s%n", dir.getAbsolutePath());
 		
 		// list all files
-		List<File> inFiles = Arrays.asList(dir.listFiles(File::isFile));
+		List<File> inFiles = Arrays.asList(dir.listFiles(f -> f.isFile() && allowedExtensions.contains(f.getName().substring(f.getName().lastIndexOf('.')))));
+		
+		System.out.printf("found %d files%n", inFiles.size());
 		
 		// load all files
 		Map<File, BufferedImage> images = inFiles.stream().collect(Collectors.toMap(f -> f, f -> {
@@ -174,10 +179,9 @@ public class Main {
 	public static int pixelDelta(int px1, int px2) {
 		int diff = 0;
 		
-		diff += Math.abs(mask(px1, ColourMasks.ALPHA) - mask(px2, ColourMasks.ALPHA));
-		diff += Math.abs(mask(px1, ColourMasks.RED) - mask(px2, ColourMasks.RED));
-		diff += Math.abs(mask(px1, ColourMasks.GREEN) - mask(px2, ColourMasks.GREEN));
-		diff += Math.abs(mask(px1, ColourMasks.BLUE) - mask(px2, ColourMasks.BLUE));
+		for(ColourMasks mask : ColourMasks.values()) {
+			diff += Math.abs(mask(px1, mask) - mask(px2, mask));
+		}
 		
 		return diff;
 	}
