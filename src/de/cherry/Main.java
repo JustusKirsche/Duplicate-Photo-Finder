@@ -21,7 +21,7 @@ public class Main {
 	public static final double MAX_PIXEL_DIFFERENCE = 0.9d;
 	public static final double MAX_IMAGE_DIFFERENCE = 0.9d;
 	
-	static Set<String> allowedExtensions = Set.of(".png", ".jpeg", ".jpg");
+	private static final Set<String> allowedExtensions = Set.of(".png", ".jpeg", ".jpg");
 	
 	public static void main(String[] args) {
 		File dir = new File(args[0]);
@@ -34,7 +34,7 @@ public class Main {
 		System.out.printf("found %d files%n", inFiles.size());
 		
 		// load all files
-		Map<File, BufferedImage> images = inFiles.stream().collect(Collectors.toMap(f -> f, f -> {
+		Map<File, BufferedImage> images = inFiles.parallelStream().collect(Collectors.toMap(f -> f, f -> {
 			try {
 				return resize(ImageIO.read(f), TARGET_WIDTH, TARGET_HEIGHT);
 			} catch(IOException e) {
