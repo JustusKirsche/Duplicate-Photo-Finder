@@ -31,33 +31,30 @@ public class Main {
 		// list all files
 		List<File> inFiles = Arrays.asList(dir.listFiles(f -> f.isFile() && allowedExtensions.contains(f.getName().substring(f.getName().lastIndexOf('.')))));
 		
-		System.out.printf("found %d files%n", inFiles.size());
+		System.out.printf("found %d possible files%n", inFiles.size());
 		
 		// load all files
 		Map<File, BufferedImage> images = inFiles.parallelStream().collect(Collectors.toMap(f -> f, f -> {
 			try {
 				return resize(ImageIO.read(f), TARGET_WIDTH, TARGET_HEIGHT);
 			} catch(IOException e) {
-				e.printStackTrace();
+				System.out.printf("could not load '%s', reason: %s%n", f.getAbsolutePath(), e.getMessage());
 				return null;
 			}
 		}));
+		images = images.entrySet().stream().filter(e -> e.getValue() != null).collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 		
 		System.out.printf("loaded %d files, resizing...%n", inFiles.size());
 		
 		// filter, in case an error occurred
-		images = images.entrySet().stream().filter(e -> e.getValue() != null).collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 		List<File> files = images.keySet().stream().toList();
 		
 		final int size = files.size();
 		
-		System.out.printf("resizing done, comparing %d images%n", size);
+		System.out.printf("resizing done, comparing images%n", size);
 		
 		for(int i = 0; i < size; i++) {
-			for(int j = i; j < size; j++) {
-				if(i == j) {
-					continue;
-				}
+			for(int j = i + 1; j < size; j++) {
 				
 				File f1 = files.get(i);
 				File f2 = files.get(j);
